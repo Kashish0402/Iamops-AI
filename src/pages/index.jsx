@@ -1,10 +1,10 @@
 import Layout from "./Layout.jsx";
 
-import Dashboard from "./Dashboard";
+import Dashboard from "./Dashboard.jsx";
 
-import SecurityDashboard from "./SecurityDashboard";
+import SecurityDashboard from "./SecurityDashboard.jsx";
 
-import Tasks from "./Tasks";
+import Tasks from "./Tasks.jsx";
 
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
