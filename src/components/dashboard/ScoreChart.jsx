@@ -1,38 +1,41 @@
+import React, { useEffect, useState } from 'react';
+import { getSecurityScores } from "@/api/entities";
+import { Card } from "@/components/ui/card";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from 'recharts';
 
-import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+export default function SecurityChart() {
+  const [chartData, setChartData] = useState([]);
 
-export default function SecurityChart({ data = [] }) {
-  // Format database data and add predictions
-  const formatData = () => {
-    const sortedData = [...data].sort((a, b) => new Date(a.month) - new Date(b.month));
-    
-    // Format existing data with short month names
-    const formattedData = sortedData.map(item => ({
+  useEffect(() => {
+    const fetchScores = async () => {
+      try {
+        const data = await getSecurityScores();
+
+        // Format for Recharts and add predictions
+        const formattedData = formatChartData(data);
+        setChartData(formattedData);
+      } catch (error) {
+        console.error('Failed to fetch scores:', error);
+      }
+    };
+
+    fetchScores();
+  }, []);
+
+  const formatChartData = (data) => {
+    const sorted = [...data].sort((a, b) => new Date(a.month) - new Date(b.month));
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const formatted = sorted.map(item => ({
       month: new Date(item.month).toLocaleString('default', { month: 'short' }),
-      score: Math.round(item.score)
+      score: Math.round(item.avg_score)
     }));
 
-    // Add predictions for next 3 months
-    const lastScore = formattedData[formattedData.length - 1]?.score || 0;
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const lastMonth = new Date(data[data.length - 1]?.month || new Date());
-    
-    for(let i = 1; i <= 3; i++) {
-      const nextMonth = new Date(lastMonth);
-      nextMonth.setMonth(lastMonth.getMonth() + i);
-      formattedData.push({
-        month: monthNames[nextMonth.getMonth()],
-        score: Math.min(100, Math.round(lastScore + (i * 5))),
-        predicted: true
-      });
-    }
-
-    return formattedData;
+    return formatted;
   };
-
-  const chartData = formatData();
 
   return (
     <Card className="bg-white p-6 rounded-lg w-[700px] h-[240px]">
@@ -54,26 +57,25 @@ export default function SecurityChart({ data = [] }) {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            
+
             <XAxis 
               dataKey="month"
               tick={{ fontSize: 10 }}
               tickLine={false}
             />
-            
+
             <YAxis
               domain={[0, 100]}
               tick={{ fontSize: 10 }}
               tickLine={false}
               tickCount={5}
             />
-            
+
             <Tooltip 
               formatter={(value) => [`${value}%`]}
               labelStyle={{ color: '#666' }}
             />
 
-            {/* Target line at 100% */}
             <Line
               type="monotone"
               data={chartData.map(d => ({ month: d.month, target: 100 }))}
@@ -83,7 +85,6 @@ export default function SecurityChart({ data = [] }) {
               dot={false}
             />
 
-            {/* Actual score line */}
             <Line
               type="monotone"
               dataKey="score"
